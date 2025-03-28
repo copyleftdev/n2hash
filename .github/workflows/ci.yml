@@ -20,18 +20,15 @@ jobs:
         rust: [stable]
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Install Rust
-      uses: actions-rs/toolchain@v1
+      uses: dtolnay/rust-toolchain@stable
       with:
-        profile: minimal
-        toolchain: ${{ matrix.rust }}
-        override: true
         components: rustfmt, clippy
     
     - name: Cargo Cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.cargo/registry
@@ -67,20 +64,16 @@ jobs:
             asset_name: n2hash-macos-amd64
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Install Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        override: true
+      uses: dtolnay/rust-toolchain@stable
     
     - name: Build Release
       run: cargo build --release
     
     - name: Upload Artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.asset_name }}
         path: target/release/${{ matrix.artifact_name }}
@@ -93,48 +86,17 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     
     - name: Download all artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       
     - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          n2hash-linux-amd64/n2hash
+          n2hash-windows-amd64.exe/n2hash.exe
+          n2hash-macos-amd64/n2hash
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        draft: false
-        prerelease: false
-    
-    - name: Upload Linux Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./n2hash-linux-amd64/n2hash
-        asset_name: n2hash-linux-amd64
-        asset_content_type: application/octet-stream
-    
-    - name: Upload Windows Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./n2hash-windows-amd64.exe/n2hash.exe
-        asset_name: n2hash-windows-amd64.exe
-        asset_content_type: application/octet-stream
-    
-    - name: Upload macOS Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./n2hash-macos-amd64/n2hash
-        asset_name: n2hash-macos-amd64
-        asset_content_type: application/octet-stream
