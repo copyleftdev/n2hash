@@ -97,13 +97,18 @@ jobs:
     
     - name: Download all artifacts
       uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+      
+    - name: Display structure of downloaded files
+      run: ls -R artifacts/
       
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          n2hash-linux-amd64/n2hash
-          n2hash-windows-amd64.exe/n2hash.exe
-          n2hash-macos-amd64/n2hash
+          artifacts/n2hash-linux-amd64/n2hash
+          artifacts/n2hash-windows-amd64.exe/n2hash.exe
+          artifacts/n2hash-macos-amd64/n2hash
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
