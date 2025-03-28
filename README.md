@@ -89,4 +89,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Author
 
-Copyright 2025 [copyleftdev](https://github.com/copyleftdev)
+Copyleft 2025 [copyleftdev](https://github.com/copyleftdev)
