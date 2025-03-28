@@ -1,0 +1,43 @@
+[package]
+name = "n2hash"
+version = "0.2.0" # Incremented version
+edition = "2021"
+authors = ["Your Name <you@example.com>"]
+description = "A CLI tool to generate NetNTLMv2 hashes"
+license = "MIT" # Choose appropriate license(s)
+readme = "README.md" # Optional: Add a README file later
+repository = "https://github.com/coyleftdev/n2hash" # Optional: Add repo link
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+# Defines the binary executable name
+[[bin]]
+name = "n2hash"
+path = "src/main.rs"
+
+[dependencies]
+# Cryptographic Hashes & HMAC
+md4 = "0.10"
+md5 = "0.7.0"
+
+# Randomness for challenges
+rand = "0.8.5"
+
+# Time for timestamp
+chrono = "0.4"
+
+# Hex encoding/decoding
+hex = "0.4"
+
+# Command-line argument parsing
+clap = { version = "4.5", features = ["derive", "env"] } # Enable derive and env features
+
+# Secure password prompt
+rpassword = "7.3"
+
+# Terminal coloring
+colored = "3.0.0"
+
+thiserror = "2.0.12"
+
+digest = "0.8.1"
