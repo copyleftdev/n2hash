@@ -141,3 +141,109 @@ pub fn net_ntlm_v2(user: &str, domain: &str, password: &str) -> Result<String, N
         blob_hex
     ))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use proptest::prelude::*;
+    use hex_literal::hex;
+
+    const KNOWN_PASSWORD_1: &str = "password";
+    const KNOWN_NTLM_1: &str = "8846f7eaee8fb117ad06bdd830b7586c";
+
+    const KNOWN_PASSWORD_2: &str = "Password123!";
+    const KNOWN_NTLM_2: &str = "2b576acbe6bcfda7294d6bd18041b8fe";
+
+    #[test]
+    fn test_ntlm_known_vectors() {
+        assert_eq!(ntlm(KNOWN_PASSWORD_1), KNOWN_NTLM_1);
+        assert_eq!(ntlm(KNOWN_PASSWORD_2), KNOWN_NTLM_2);
+    }
+
+    #[test]
+    fn test_hmac_md5() {
+        let key = hex!("0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b");
+        let data = b"Hi There";
+        let expected = hex!("9294727a3638bb1c13f48ef8158bfc9d");
+        
+        let result = hmac_md5(&key, data);
+        assert_eq!(result, expected);
+    }
+    
+    proptest! {
+        #[test]
+        fn ntlm_hash_always_valid_length(password in ".*") {
+            let hash = ntlm(&password);
+            prop_assert_eq!(hash.len(), 32);
+            prop_assert!(hex::decode(&hash).is_ok());
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn net_ntlm_v2_always_valid_format(
+            user in "[a-zA-Z0-9]{1,10}",
+            domain in "[a-zA-Z0-9]{1,10}",
+            password in "[a-zA-Z0-9]{1,10}"
+        ) {
+            let result = net_ntlm_v2(&user, &domain, &password);
+            prop_assert!(result.is_ok());
+            
+            let hash_string = result.unwrap();
+            
+            let user_rest: Vec<&str> = hash_string.splitn(2, "::").collect();
+            prop_assert_eq!(user_rest.len(), 2);
+            prop_assert_eq!(user_rest[0], user);
+            
+            let rest_parts: Vec<&str> = user_rest[1].split(':').collect();
+            prop_assert_eq!(rest_parts.len(), 4);
+            prop_assert_eq!(rest_parts[0], domain);
+            
+            prop_assert_eq!(rest_parts[1].len(), 16);
+            prop_assert!(hex::decode(rest_parts[1]).is_ok());
+            
+            prop_assert_eq!(rest_parts[2].len(), 32);
+            prop_assert!(hex::decode(rest_parts[2]).is_ok());
+            
+            prop_assert!(hex::decode(rest_parts[3]).is_ok());
+        }
+    }
+
+    #[test]
+    fn test_net_ntlm_v2_deterministic() {
+        let user = "testuser";
+        let domain = "testdomain";
+        let password = "testpassword";
+        
+        let hash1 = net_ntlm_v2(user, domain, password).unwrap();
+        let hash2 = net_ntlm_v2(user, domain, password).unwrap();
+        
+        let parts1: Vec<&str> = hash1.split(':').collect();
+        let parts2: Vec<&str> = hash2.split(':').collect();
+        
+        assert_eq!(parts1[0], parts2[0]);
+    }
+    
+    proptest! {
+        #[test]
+        fn ntlm_hash_deterministic(password in ".*") {
+            let hash1 = ntlm(&password);
+            let hash2 = ntlm(&password);
+            prop_assert_eq!(hash1, hash2);
+        }
+    }
+    
+    proptest! {
+        #[test]
+        fn different_passwords_different_hashes(
+            password1 in "[a-zA-Z0-9]{1,10}",
+            password2 in "[a-zA-Z0-9]{1,10}"
+        ) {
+            prop_assume!(password1 != password2);
+            
+            let hash1 = ntlm(&password1);
+            let hash2 = ntlm(&password2);
+            prop_assert_ne!(hash1, hash2);
+        }
+    }
+}
