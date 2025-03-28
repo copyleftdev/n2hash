@@ -1,9 +1,9 @@
 use clap::Parser;
 use colored::*;
 use rpassword::prompt_password;
+use std::env;
 use std::io::{self, Write};
 use std::process;
-use std::env;
 
 mod ntlm_logic;
 
@@ -27,12 +27,18 @@ fn main() {
     let args = CliArgs::parse();
 
     let username = args.username.unwrap_or_else(|| {
-        eprintln!("{}", "Error: Username not provided via -u/--username or N2HASH_USERNAME env var.".red());
+        eprintln!(
+            "{}",
+            "Error: Username not provided via -u/--username or N2HASH_USERNAME env var.".red()
+        );
         process::exit(1);
     });
 
     let domain = args.domain.unwrap_or_else(|| {
-        eprintln!("{}", "Error: Domain not provided via -d/--domain or N2HASH_DOMAIN env var.".red());
+        eprintln!(
+            "{}",
+            "Error: Domain not provided via -d/--domain or N2HASH_DOMAIN env var.".red()
+        );
         process::exit(1);
     });
 
@@ -41,21 +47,30 @@ fn main() {
         Some(p) => {
             let env_pass = env::var("N2HASH_PASSWORD").ok();
             if env_pass.as_deref() == Some(&p) {
-                 password_source = "environment variable (N2HASH_PASSWORD)".to_string();
-                 if args.verbose > 0 {
-                     println!("[{}] {}", "Info".cyan(), "Using password from environment variable.");
-                 }
+                password_source = "environment variable (N2HASH_PASSWORD)".to_string();
+                if args.verbose > 0 {
+                    println!(
+                        "[{}] Using password from environment variable.",
+                        "Info".cyan()
+                    );
+                }
             } else {
-                 password_source = "command-line argument (-p)".to_string();
-                 eprintln!("{}", "Warning: Providing password directly via -p is insecure.".yellow());
+                password_source = "command-line argument (-p)".to_string();
+                eprintln!(
+                    "{}",
+                    "Warning: Providing password directly via -p is insecure.".yellow()
+                );
             }
             p
-        },
+        }
         None => {
-             password_source = "interactive prompt".to_string();
-             if args.verbose > 0 {
-                 println!("[{}] {}", "Info".cyan(), "Password not found in args or env, prompting.");
-             }
+            password_source = "interactive prompt".to_string();
+            if args.verbose > 0 {
+                println!(
+                    "[{}] Password not found in args or env, prompting.",
+                    "Info".cyan()
+                );
+            }
             match prompt_password(format!("{}: ", "Enter password".yellow())) {
                 Ok(p) => p,
                 Err(e) => {
@@ -66,16 +81,24 @@ fn main() {
         }
     };
 
-     if args.verbose > 0 {
-         println!("[{}] Using username: '{}'", "Info".cyan(), username);
-         println!("[{}] Using domain:   '{}'", "Info".cyan(), domain);
-         println!("[{}] Using password from: {}", "Info".cyan(), password_source);
-     }
+    if args.verbose > 0 {
+        println!("[{}] Using username: '{}'", "Info".cyan(), username);
+        println!("[{}] Using domain:   '{}'", "Info".cyan(), domain);
+        println!(
+            "[{}] Using password from: {}",
+            "Info".cyan(),
+            password_source
+        );
+    }
 
-     if args.verbose > 0 {
-         let ntlm_hash = ntlm_logic::ntlm(&password);
-         println!("[{}] NTLM Hash:   {}", "Verbose".purple(), ntlm_hash.bright_black());
-     }
+    if args.verbose > 0 {
+        let ntlm_hash = ntlm_logic::ntlm(&password);
+        println!(
+            "[{}] NTLM Hash:   {}",
+            "Verbose".purple(),
+            ntlm_hash.bright_black()
+        );
+    }
 
     match ntlm_logic::net_ntlm_v2(&username, &domain, &password) {
         Ok(hash_string) => {
@@ -94,7 +117,10 @@ fn main() {
                     parts[4].bright_black()
                 );
             } else {
-                eprintln!("{}", "Warning: Could not colorize output, format unexpected.".yellow());
+                eprintln!(
+                    "{}",
+                    "Warning: Could not colorize output, format unexpected.".yellow()
+                );
                 println!("{}", hash_string);
             }
             process::exit(0);

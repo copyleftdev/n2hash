@@ -1,10 +1,8 @@
-use md5;
+use chrono::Utc;
+use md4::{Digest as Md4Digest, Md4};
 #[allow(deprecated)]
 use rand::thread_rng;
 use rand::RngCore;
-use chrono::Utc;
-use hex;
-use md4::{Md4, Digest as Md4Digest};
 use thiserror::Error;
 
 const RESPONDER_VERSION: u8 = 1;
@@ -91,13 +89,14 @@ pub fn net_ntlm_v2(user: &str, domain: &str, password: &str) -> Result<String, N
         server_name_bytes.extend_from_slice(&char_code.to_le_bytes());
     }
 
-    let blob_len = 1 + 1
-                 + RESERVED_1_PADDING.len()
-                 + timestamp_bytes.len()
-                 + client_challenge.len()
-                 + RESERVED_2_PADDING.len()
-                 + server_name_bytes.len()
-                 + RESERVED_3_PADDING.len();
+    let blob_len = 1
+        + 1
+        + RESERVED_1_PADDING.len()
+        + timestamp_bytes.len()
+        + client_challenge.len()
+        + RESERVED_2_PADDING.len()
+        + server_name_bytes.len()
+        + RESERVED_3_PADDING.len();
     let mut blob = Vec::with_capacity(blob_len);
 
     blob.push(RESPONDER_VERSION);
@@ -134,19 +133,15 @@ pub fn net_ntlm_v2(user: &str, domain: &str, password: &str) -> Result<String, N
 
     Ok(format!(
         "{}::{}:{}:{}:{}",
-        user,
-        domain,
-        server_challenge_hex,
-        nt_proof_string_hex,
-        blob_hex
+        user, domain, server_challenge_hex, nt_proof_string_hex, blob_hex
     ))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use proptest::prelude::*;
     use hex_literal::hex;
+    use proptest::prelude::*;
 
     const KNOWN_PASSWORD_1: &str = "password";
     const KNOWN_NTLM_1: &str = "8846f7eaee8fb117ad06bdd830b7586c";
@@ -165,11 +160,11 @@ mod tests {
         let key = hex!("0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b");
         let data = b"Hi There";
         let expected = hex!("9294727a3638bb1c13f48ef8158bfc9d");
-        
+
         let result = hmac_md5(&key, data);
         assert_eq!(result, expected);
     }
-    
+
     proptest! {
         #[test]
         fn ntlm_hash_always_valid_length(password in ".*") {
@@ -188,23 +183,23 @@ mod tests {
         ) {
             let result = net_ntlm_v2(&user, &domain, &password);
             prop_assert!(result.is_ok());
-            
+
             let hash_string = result.unwrap();
-            
+
             let user_rest: Vec<&str> = hash_string.splitn(2, "::").collect();
             prop_assert_eq!(user_rest.len(), 2);
             prop_assert_eq!(user_rest[0], user);
-            
+
             let rest_parts: Vec<&str> = user_rest[1].split(':').collect();
             prop_assert_eq!(rest_parts.len(), 4);
             prop_assert_eq!(rest_parts[0], domain);
-            
+
             prop_assert_eq!(rest_parts[1].len(), 16);
             prop_assert!(hex::decode(rest_parts[1]).is_ok());
-            
+
             prop_assert_eq!(rest_parts[2].len(), 32);
             prop_assert!(hex::decode(rest_parts[2]).is_ok());
-            
+
             prop_assert!(hex::decode(rest_parts[3]).is_ok());
         }
     }
@@ -214,16 +209,16 @@ mod tests {
         let user = "testuser";
         let domain = "testdomain";
         let password = "testpassword";
-        
+
         let hash1 = net_ntlm_v2(user, domain, password).unwrap();
         let hash2 = net_ntlm_v2(user, domain, password).unwrap();
-        
+
         let parts1: Vec<&str> = hash1.split(':').collect();
         let parts2: Vec<&str> = hash2.split(':').collect();
-        
+
         assert_eq!(parts1[0], parts2[0]);
     }
-    
+
     proptest! {
         #[test]
         fn ntlm_hash_deterministic(password in ".*") {
@@ -232,7 +227,7 @@ mod tests {
             prop_assert_eq!(hash1, hash2);
         }
     }
-    
+
     proptest! {
         #[test]
         fn different_passwords_different_hashes(
@@ -240,7 +235,7 @@ mod tests {
             password2 in "[a-zA-Z0-9]{1,10}"
         ) {
             prop_assume!(password1 != password2);
-            
+
             let hash1 = ntlm(&password1);
             let hash2 = ntlm(&password2);
             prop_assert_ne!(hash1, hash2);
